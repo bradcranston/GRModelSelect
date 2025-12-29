@@ -1,0 +1,22 @@
+{
+	"Door" : "",
+	"DoorOption" : "",
+	"Equipment_Location_Description" : "LOW RI LINE",
+	"Gasket_Profile" : "516S BK",
+	"Height" : "26.25",
+	"InvertedProfile" : "Inverted Profile",
+	"Item_Note" : "",
+	"Item_Note_Display" : "Inverted",
+	"Manufacturer" : "Traulsen",
+	"Model" : "",
+	"NoMagnet" : "",
+	"ProductType" : "Refrigerator",
+	"Refrigerator_Type" : "Half Door",
+	"Width" : "25",
+	"f_backerRodNeeded" : "",
+	"f_fillerNeeded" : "",
+	"f_substitutePart" : "",
+	"gasketLinearSub_Ft" : "8.75",
+	"gasketLinear_Ft" : "8.54",
+	"gasketLinear_In" : "102.5"
+}

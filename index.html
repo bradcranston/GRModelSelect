@@ -2,16 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <style>
       @import "./src/style.css";
     </style>
-    <title>JSDev</title>
+    <title>Manufacturer Selection</title>
   </head>
   <body>
-    <h1>Alright. You're set.</h1>
-      <h2 class="tintedBlackLeft">Now build something amazing!</h2>
-      <p>JS in FM is amazing</p>
-    <button type="button">Click Me!</button>
+    <div id="app">
+      <div class="header">
+        <div class="title-bar">
+          <h1 id="page-title">Select Manufacturer</h1>
+          <button id="back-btn" class="back-button" style="display: none;">← Back</button>
+        </div>
+        <div class="filter-controls" id="manufacturer-filters">
+          <div class="filter-group">
+            <label class="filter-checkbox">
+              <input type="checkbox" id="filter-coolers" checked>
+              <span>Coolers</span>
+            </label>
+            <label class="filter-checkbox">
+              <input type="checkbox" id="filter-warmers" checked>
+              <span>Warmers</span>
+            </label>
+          </div>
+          <div class="search-group">
+            <input type="text" id="search-input" placeholder="Search manufacturers..." />
+            <button id="clear-search" title="Clear search">×</button>
+          </div>
+        </div>
+        <div class="filter-controls" id="model-filters" style="display: none;">
+          <div class="search-group">
+            <input type="text" id="model-search-input" placeholder="Search models..." />
+            <button id="clear-model-search" title="Clear search">×</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="manufacturer-list" id="manufacturer-grid">
+        <div class="loading">Loading manufacturers...</div>
+      </div>
+      
+      <div class="model-list" id="model-grid" style="display: none;">
+        <div class="loading">Loading models...</div>
+      </div>
+    </div>
 
     <script type="module">
       import "./src/index.js";
