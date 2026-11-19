@@ -265,7 +265,8 @@ class ManufacturerSelector {
           gasketLinearSub_Ft: model.gasketLinearSub_Ft || 0,
           invertedProfile: model.InvertedProfile || null,
           item_Note: model.Item_Note || null,
-          noMagnet: model.NoMagnet || null
+          noMagnet: model.NoMagnet || null,
+          fphoto: model.fphoto || 0
         };
       });
       
@@ -357,7 +358,8 @@ class ManufacturerSelector {
           gasketLinearSub_Ft: model.gasketLinearSub_Ft || 0,
           invertedProfile: model.InvertedProfile || null,
           item_Note: model.Item_Note || null,
-          noMagnet: model.NoMagnet || null
+          noMagnet: model.NoMagnet || null,
+          fphoto: model.fphoto || 0
         };
       });
       
@@ -549,6 +551,7 @@ class ManufacturerSelector {
           <div class="col-gasket">Gasket Profile</div>
           <div class="col-width">W</div>
           <div class="col-height">H</div>
+          <div class="col-actions">Actions</div>
         </div>
         ${this.filteredModels.map(model => `
           <div class="model-row" data-id="${model.id}">
@@ -566,6 +569,9 @@ class ManufacturerSelector {
               </div>
               <div class="col-width">${model.width}</div>
               <div class="col-height">${model.height}</div>
+              <div class="col-actions">
+                ${model.fphoto === 1 ? `<button class="view-photos-btn" data-model-id="${model.id}" title="View Photos">📷</button>` : ''}
+              </div>
             </div>
             <div class="model-details">
               <div class="door-info">${this.escapeHtml(model.itemNote || model.door)}</div>
@@ -577,9 +583,25 @@ class ManufacturerSelector {
 
     // Add click handlers to model rows
     grid.querySelectorAll('.model-row').forEach(row => {
-      row.addEventListener('click', () => {
+      row.addEventListener('click', (e) => {
+        // Don't select model if clicking on action buttons
+        if (e.target.closest('.col-actions')) {
+          return;
+        }
         const modelId = row.dataset.id;
         this.selectModel(modelId);
+      });
+    });
+
+    // Add click handlers to View Photos buttons
+    grid.querySelectorAll('.view-photos-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent row selection
+        const modelId = btn.dataset.modelId;
+        const model = this.models.find(m => m.id == modelId);
+        if (model) {
+          this.viewPhotos(model);
+        }
       });
     });
   }
@@ -717,6 +739,168 @@ class ManufacturerSelector {
     div.textContent = text;
     return div.innerHTML;
   }
+
+  // Function to view photos for a model
+  viewPhotos(model) {
+    const result = {
+      id: model.id,
+      __ID: model.__ID,
+      model: model.model,
+      manufacturer: {
+        id: this.selectedManufacturer.id,
+        __ID: this.selectedManufacturer.__ID,
+        name: this.selectedManufacturer.name
+      },
+      mode: 'view_photos'
+    };
+
+    console.log('Requesting photos for model:', result);
+
+    // Call FileMaker script to get photos
+    if (window.FileMaker && window.FileMaker.PerformScript) {
+      window.FileMaker.PerformScript('Manage: Gasket Model', JSON.stringify(result));
+    } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.FileMaker) {
+      // Alternative method for newer FileMaker versions
+      window.webkit.messageHandlers.FileMaker.postMessage({
+        script: 'Manage: Gasket Model',
+        parameter: JSON.stringify(result)
+      });
+    } else {
+      // For testing without FileMaker
+      console.log('Would request photos for model:', result);
+      alert(`Would request photos for: ${result.model}`);
+    }
+  }
+
+  // Function to be called by FileMaker to display photos
+  displayPhotos(photoData) {
+    try {
+      let parsedData = photoData;
+      if (typeof photoData === 'string') {
+        try {
+          parsedData = JSON.parse(photoData);
+        } catch (parseError) {
+          console.error('Error parsing photo data:', parseError);
+          this.showPhotoError('Invalid photo data received');
+          return;
+        }
+      }
+
+      console.log('Displaying photos:', parsedData);
+
+      const { photo1, photo2, modelInfo } = parsedData;
+      
+      // Create photo modal
+      this.createPhotoModal(photo1, photo2, modelInfo);
+    } catch (error) {
+      console.error('Error displaying photos:', error);
+      this.showPhotoError('Failed to display photos');
+    }
+  }
+
+  // Create photo modal
+  createPhotoModal(photo1, photo2, modelInfo = {}) {
+    // Remove existing modal if present
+    const existingModal = document.getElementById('photo-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'photo-modal';
+    modal.className = 'photo-modal';
+    
+    modal.innerHTML = `
+      <div class="photo-modal-content">
+        <div class="photo-modal-header">
+          <h3>Model Photos${modelInfo.model ? ` - ${this.escapeHtml(modelInfo.model)}` : ''}</h3>
+          <button class="photo-close-btn">&times;</button>
+        </div>
+        <div class="photo-modal-body">
+          <div class="photos-container">
+            ${photo1 ? `
+              <div class="photo-wrapper">
+                <img src="data:image/jpeg;base64,${photo1}" alt="Photo 1" class="model-photo">
+                <div class="photo-label">Photo 1</div>
+              </div>
+            ` : '<div class="no-photo">Photo 1: No image available</div>'}
+            ${photo2 ? `
+              <div class="photo-wrapper">
+                <img src="data:image/jpeg;base64,${photo2}" alt="Photo 2" class="model-photo">
+                <div class="photo-label">Photo 2</div>
+              </div>
+            ` : '<div class="no-photo">Photo 2: No image available</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add event listeners
+    const closeBtn = modal.querySelector('.photo-close-btn');
+    closeBtn.addEventListener('click', () => this.closePhotoModal());
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.closePhotoModal();
+      }
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', this.handleEscapeKey.bind(this));
+  }
+
+  // Handle escape key to close modal
+  handleEscapeKey(e) {
+    if (e.key === 'Escape') {
+      this.closePhotoModal();
+    }
+  }
+
+  // Close photo modal
+  closePhotoModal() {
+    const modal = document.getElementById('photo-modal');
+    if (modal) {
+      modal.remove();
+    }
+    document.removeEventListener('keydown', this.handleEscapeKey);
+  }
+
+  // Show photo error
+  showPhotoError(message) {
+    // Create simple error modal
+    const modal = document.createElement('div');
+    modal.id = 'photo-modal';
+    modal.className = 'photo-modal';
+    
+    modal.innerHTML = `
+      <div class="photo-modal-content">
+        <div class="photo-modal-header">
+          <h3>Photo Error</h3>
+          <button class="photo-close-btn">&times;</button>
+        </div>
+        <div class="photo-modal-body">
+          <div class="error">
+            <p>${this.escapeHtml(message)}</p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeBtn = modal.querySelector('.photo-close-btn');
+    closeBtn.addEventListener('click', () => this.closePhotoModal());
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.closePhotoModal();
+      }
+    });
+  }
 }
 
 // Initialize the manufacturer selector
@@ -726,6 +910,7 @@ const manufacturerSelector = new ManufacturerSelector();
 window.loadManufacturers = (data) => manufacturerSelector.loadManufacturers(data);
 window.loadModels = (data) => manufacturerSelector.loadModels(data);
 window.loadDupModels = (data, newModelData) => manufacturerSelector.loadDupModels(data, newModelData);
+window.displayPhotos = (photoData) => manufacturerSelector.displayPhotos(photoData);
 window.manufacturerSelector = manufacturerSelector;
 
 // For testing purposes, load sample data if running in development
